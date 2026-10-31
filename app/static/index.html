@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarketPulse – Terminal & Portfolio Desk</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              500: '#10b981',
+              600: '#059669',
+            },
+            dark: {
+              950: '#070a0f',
+              900: '#0d131d',
+              850: '#111927',
+              800: '#172234',
+              750: '#1e2c43',
+              700: '#263753',
+              600: '#384d72',
+            },
+            accent: {
+              green: '#00e599',
+              red: '#ff3b57',
+              cyan: '#00d2ff',
+              gold: '#ffb703',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #070a0f; color: #e2e8f0; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: #0d131d; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #263753; border-radius: 3px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: #384d72; }
+    .glass-panel { background: rgba(17, 25, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(38, 55, 83, 0.6); }
+    .glass-card { background: rgba(23, 34, 52, 0.5); backdrop-filter: blur(8px); border: 1px solid rgba(38, 55, 83, 0.5); }
+    .tab-btn.active { color: #00e599; border-color: #00e599; background: rgba(0, 229, 153, 0.08); }
+  </style>
+</head>
+<body class="min-h-screen font-sans flex flex-col antialiased selection:bg-accent-green/20 selection:text-accent-green">
+
+  <!-- TOP NAVIGATION HEADER -->
+  <header class="sticky top-0 z-40 border-b border-dark-750 glass-panel">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-accent-green/20 to-accent-cyan/20 border border-accent-green/40 flex items-center justify-center shadow-lg shadow-accent-green/10">
+          <svg class="w-6 h-6 text-accent-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-accent-green bg-clip-text text-transparent">MarketPulse</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full font-mono bg-accent-green/10 text-accent-green border border-accent-green/30">API LIVE</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Stock Watchlist & Portfolio Desk</p>
+        </div>
+      </div>
+
+      <!-- User Info & Controls -->
+      <div id="authSection" class="flex items-center gap-3">
+        <!-- Rendered dynamically via JS -->
+      </div>
+    </div>
+
+    <!-- SUB-NAV / TABS -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 overflow-x-auto custom-scroll border-t border-dark-750/50">
+      <button onclick="switchTab('markets')" class="tab-btn active px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap" data-tab="markets">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Markets & Watchlist
+      </button>
+      <button onclick="switchTab('portfolio')" class="tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap" data-tab="portfolio">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Portfolio & Trading
+      </button>
+      <button onclick="switchTab('chart')" class="tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap" data-tab="chart">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+        Interactive Chart
+      </button>
+      <button onclick="switchTab('alerts')" class="tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap" data-tab="alerts">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        Price Alerts
+      </button>
+      <button onclick="switchTab('news')" class="tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap" data-tab="news">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
+        Semantic News Search
+      </button>
+      <button onclick="switchTab('history')" class="tab-btn px-4 py-2.5 text-xs font-semibold border-b-2 border-transparent transition flex items-center gap-2 whitespace-nowrap" data-tab="history">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Audit History
+      </button>
+    </div>
+  </header>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl glass-panel text-sm font-medium"></div>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ==================== TAB 1: MARKETS & WATCHLIST ==================== -->
+    <div id="tab-markets" class="tab-content space-y-6">
+      <!-- Search & Filters -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div class="relative w-full sm:w-80">
+          <input type="text" id="stockSearch" placeholder="Search by ticker or company..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-dark-850 border border-dark-750 focus:border-accent-green focus:outline-none text-sm transition" oninput="filterStocks()" />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+
+        <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 custom-scroll" id="sectorPills">
+          <!-- Sector filter pills generated via JS -->
+        </div>
+      </div>
+
+      <!-- Watchlist Banner -->
+      <div class="p-4 rounded-2xl glass-card border-dark-750/70">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-accent-gold text-lg">★</span>
+            <h3 class="font-bold text-sm tracking-wide text-white uppercase">My Watchlist</h3>
+          </div>
+          <span id="watchlistCount" class="text-xs text-slate-400 font-mono">0 stocks</span>
+        </div>
+        <div id="watchlistGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <!-- Watchlist items loaded here -->
+        </div>
+      </div>
+
+      <!-- All Stocks Grid -->
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-extrabold text-lg text-white">Market Quotes (NSE)</h2>
+          <span class="text-xs text-slate-400 font-mono" id="stockCountLabel">Showing 10 stocks</span>
+        </div>
+        <div id="stocksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2: PORTFOLIO & TRADING ==================== -->
+    <div id="tab-portfolio" class="tab-content hidden space-y-6">
+      <!-- Portfolio Overview Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-2xl glass-panel border-dark-750">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Portfolio Value</p>
+          <p id="portTotalValue" class="text-2xl font-black font-mono mt-1 text-white">₹0.00</p>
+          <p class="text-[11px] text-slate-400 mt-1">Cash + Stock Holdings</p>
+        </div>
+        <div class="p-5 rounded-2xl glass-panel border-dark-750">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Available Cash</p>
+          <p id="portCashBalance" class="text-2xl font-black font-mono mt-1 text-accent-green">₹0.00</p>
+          <p class="text-[11px] text-slate-400 mt-1">Ready to deploy</p>
+        </div>
+        <div class="p-5 rounded-2xl glass-panel border-dark-750">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Invested in Stocks</p>
+          <p id="portHoldingsValue" class="text-2xl font-black font-mono mt-1 text-white">₹0.00</p>
+          <p class="text-[11px] text-slate-400 mt-1">Current market value</p>
+        </div>
+        <div class="p-5 rounded-2xl glass-panel border-dark-750">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Unrealized P&L</p>
+          <div class="flex items-center gap-2 mt-1">
+            <p id="portPnl" class="text-2xl font-black font-mono text-slate-300">₹0.00</p>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1" id="portPnlPct">0.00% return</p>
+        </div>
+      </div>
+
+      <!-- Main Trading & Holdings Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Holdings Table (Left 2 cols) -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-base text-white">Your Stock Holdings</h3>
+            <button onclick="loadPortfolio()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Refresh
+            </button>
+          </div>
+
+          <div class="overflow-x-auto rounded-2xl glass-panel border-dark-750 custom-scroll">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-dark-850/80 text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-dark-750">
+                <tr>
+                  <th class="py-3 px-4">Stock</th>
+                  <th class="py-3 px-4">Qty</th>
+                  <th class="py-3 px-4">Avg Price</th>
+                  <th class="py-3 px-4">Current</th>
+                  <th class="py-3 px-4">Market Value</th>
+                  <th class="py-3 px-4">P&L</th>
+                  <th class="py-3 px-4 text-right">Quick Action</th>
+                </tr>
+              </thead>
+              <tbody id="holdingsTableBody" class="divide-y divide-dark-750/50">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Order Execution Card (Right 1 col) -->
+        <div class="p-5 rounded-2xl glass-panel border-dark-750 space-y-4">
+          <div class="flex items-center justify-between border-b border-dark-750 pb-3">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-accent-green animate-pulse"></span>
+              Execution Desk
+            </h3>
+            <span class="text-[10px] font-mono text-slate-400">INSTANT FILL</span>
+          </div>
+
+          <!-- Buy / Sell Mode Toggle -->
+          <div class="grid grid-cols-2 gap-2 bg-dark-900 p-1 rounded-xl border border-dark-750">
+            <button id="tradeTypeBuy" onclick="setTradeType('BUY')" class="py-2 text-xs font-bold rounded-lg transition bg-accent-green text-dark-950 shadow-md">BUY</button>
+            <button id="tradeTypeSell" onclick="setTradeType('SELL')" class="py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white">SELL</button>
+          </div>
+
+          <!-- Stock Selection -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Select Stock</label>
+            <select id="tradeStockSelect" onchange="onTradeStockChange()" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white font-mono text-xs focus:border-accent-green focus:outline-none">
+              <!-- Populated via JS -->
+            </select>
+          </div>
+
+          <!-- Price Quote Banner -->
+          <div class="p-3 rounded-xl bg-dark-900 border border-dark-750 flex items-center justify-between font-mono">
+            <div>
+              <p class="text-[10px] text-slate-400 uppercase">Latest Close Price</p>
+              <p id="tradeStockPrice" class="text-base font-black text-white">₹0.00</p>
+            </div>
+            <div class="text-right">
+              <p class="text-[10px] text-slate-400 uppercase">You Own</p>
+              <p id="tradeStockOwned" class="text-sm font-semibold text-accent-cyan">0 shares</p>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-semibold text-slate-400 uppercase">Quantity (Shares)</label>
+              <div class="flex gap-1 text-[10px] font-mono">
+                <button type="button" onclick="setTradeQty(5)" class="px-1.5 py-0.5 rounded bg-dark-750 hover:bg-dark-700 text-slate-300">+5</button>
+                <button type="button" onclick="setTradeQty(10)" class="px-1.5 py-0.5 rounded bg-dark-750 hover:bg-dark-700 text-slate-300">+10</button>
+                <button type="button" onclick="setTradeQty(50)" class="px-1.5 py-0.5 rounded bg-dark-750 hover:bg-dark-700 text-slate-300">+50</button>
+              </div>
+            </div>
+            <input type="number" id="tradeQuantity" min="1" value="1" oninput="calculateTradeTotal()" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white font-mono text-sm focus:border-accent-green focus:outline-none" />
+          </div>
+
+          <!-- Order Summary -->
+          <div class="space-y-1.5 pt-2 border-t border-dark-750 text-xs font-mono">
+            <div class="flex justify-between text-slate-400">
+              <span>Estimated Value</span>
+              <span id="tradeEstimatedTotal" class="text-white font-semibold">₹0.00</span>
+            </div>
+            <div class="flex justify-between text-slate-400">
+              <span>Brokerage & Fees</span>
+              <span class="text-accent-green font-semibold">₹0.00 (Zero)</span>
+            </div>
+          </div>
+
+          <button id="tradeSubmitBtn" onclick="executeTrade()" class="w-full py-3 rounded-xl font-extrabold text-sm transition bg-accent-green text-dark-950 hover:brightness-110 shadow-lg shadow-accent-green/20">
+            CONFIRM BUY ORDER
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: INTERACTIVE CHART ==================== -->
+    <div id="tab-chart" class="tab-content hidden space-y-6">
+      <div class="p-6 rounded-2xl glass-panel border-dark-750 space-y-5">
+        <!-- Stock Selector and Timeline -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-dark-850 border border-dark-700 flex items-center justify-center font-black font-mono text-lg text-accent-green" id="chartTickerIcon">
+              TCS
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 id="chartStockName" class="text-xl font-bold text-white">Tata Consultancy Services</h2>
+                <span id="chartExchangeBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-dark-750 text-slate-300">NSE</span>
+              </div>
+              <div class="flex items-center gap-3 mt-1 font-mono">
+                <span id="chartLastPrice" class="text-2xl font-black text-white">₹3,900.00</span>
+                <span id="chartChangePct" class="text-xs font-bold px-2 py-0.5 rounded-full bg-accent-green/10 text-accent-green">+1.24%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <select id="chartStockSelect" onchange="onChartStockChange()" class="py-2 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white font-mono text-xs focus:border-accent-green focus:outline-none">
+              <!-- populated dynamically -->
+            </select>
+            <div class="flex rounded-xl bg-dark-900 p-1 border border-dark-750 font-mono text-xs">
+              <button onclick="loadChartDays(7)" class="chart-range-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white" data-days="7">7D</button>
+              <button onclick="loadChartDays(30)" class="chart-range-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white" data-days="30">30D</button>
+              <button onclick="loadChartDays(90)" class="chart-range-btn active px-3 py-1.5 rounded-lg text-accent-green bg-accent-green/10 font-bold" data-days="90">90D</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="h-96 w-full relative">
+          <canvas id="stockChartCanvas"></canvas>
+        </div>
+
+        <!-- OHLC Summary -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-dark-750 font-mono text-xs">
+          <div class="p-3 rounded-xl bg-dark-900 border border-dark-750">
+            <span class="text-slate-400 text-[10px] uppercase">Period High</span>
+            <p id="chartStatHigh" class="text-sm font-bold text-white mt-0.5">₹0.00</p>
+          </div>
+          <div class="p-3 rounded-xl bg-dark-900 border border-dark-750">
+            <span class="text-slate-400 text-[10px] uppercase">Period Low</span>
+            <p id="chartStatLow" class="text-sm font-bold text-white mt-0.5">₹0.00</p>
+          </div>
+          <div class="p-3 rounded-xl bg-dark-900 border border-dark-750">
+            <span class="text-slate-400 text-[10px] uppercase">Candle Volume</span>
+            <p id="chartStatVolume" class="text-sm font-bold text-white mt-0.5">0</p>
+          </div>
+          <div class="p-3 rounded-xl bg-dark-900 border border-dark-750">
+            <span class="text-slate-400 text-[10px] uppercase">Exchange Sector</span>
+            <p id="chartStatSector" class="text-sm font-bold text-accent-cyan mt-0.5">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 4: PRICE ALERTS ==================== -->
+    <div id="tab-alerts" class="tab-content hidden space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="font-extrabold text-xl text-white">Price Alerts Desk</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Automated notifications evaluated on market trade and scheduled check</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button onclick="runAlertCheck()" class="px-4 py-2 rounded-xl text-xs font-bold border border-dark-700 bg-dark-850 hover:bg-dark-750 text-slate-300 hover:text-white transition flex items-center gap-2">
+            <svg class="w-3.5 h-3.5 text-accent-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Evaluate Alerts Now
+          </button>
+          <button onclick="openNewAlertModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-accent-green text-dark-950 hover:brightness-110 transition flex items-center gap-2 shadow-lg shadow-accent-green/20">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Create New Alert
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="alertsGrid">
+        <!-- Loaded dynamically -->
+      </div>
+    </div>
+
+    <!-- ==================== TAB 5: SEMANTIC NEWS SEARCH ==================== -->
+    <div id="tab-news" class="tab-content hidden space-y-6">
+      <div class="p-6 rounded-2xl glass-panel border-dark-750 space-y-5">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="font-extrabold text-xl text-white">Semantic Financial News Retrieval</h2>
+            <p class="text-xs text-slate-400 mt-0.5">Searches financial news by meaning & contextual intent using cosine vector similarity</p>
+          </div>
+          <div id="searchBackendBadge" class="text-[11px] font-mono px-3 py-1 rounded-full bg-dark-850 border border-dark-700 text-slate-300 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-accent-green"></span>
+            Backend: Initializing...
+          </div>
+        </div>
+
+        <!-- Semantic Search Bar -->
+        <div class="flex gap-2">
+          <div class="relative flex-1">
+            <input type="text" id="newsQueryInput" placeholder="Try asking: 'how interest rate hikes impact bank lending' or 'auto sales slowdown'..." class="w-full pl-10 pr-4 py-3 rounded-xl bg-dark-850 border border-dark-750 text-sm focus:border-accent-green focus:outline-none text-white transition" onkeydown="if(event.key==='Enter') executeSemanticSearch()" />
+            <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+          <button onclick="executeSemanticSearch()" class="px-6 py-3 rounded-xl bg-accent-green text-dark-950 font-extrabold text-xs tracking-wider uppercase hover:brightness-110 transition shadow-lg shadow-accent-green/20">
+            Search
+          </button>
+        </div>
+
+        <!-- Preset Prompts -->
+        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span class="text-slate-500 text-[11px] font-medium">Sample Queries:</span>
+          <button onclick="setNewsQuery('Interest rate changes and bank profit margins')" class="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-750 text-slate-300 border border-dark-700/60 transition text-[11px]">🏦 Rate hike & bank margins</button>
+          <button onclick="setNewsQuery('Cloud computing and AI contracts for IT')" class="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-750 text-slate-300 border border-dark-700/60 transition text-[11px]">💻 Cloud & AI contracts</button>
+          <button onclick="setNewsQuery('Crude oil surge impact on petrochemical refiners')" class="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-750 text-slate-300 border border-dark-700/60 transition text-[11px]">🛢️ Crude oil & refiners</button>
+          <button onclick="setNewsQuery('Vehicle loan cost affecting car sales')" class="px-2.5 py-1 rounded-lg bg-dark-800 hover:bg-dark-750 text-slate-300 border border-dark-700/60 transition text-[11px]">🚗 Auto loan demand</button>
+        </div>
+      </div>
+
+      <!-- Search Results / News List -->
+      <div id="newsResultsList" class="space-y-4">
+        <!-- Loaded via JS -->
+      </div>
+    </div>
+
+    <!-- ==================== TAB 6: AUDIT HISTORY ==================== -->
+    <div id="tab-history" class="tab-content hidden space-y-6">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="font-extrabold text-xl text-white">Transaction Audit Ledger</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Immutable record of every Buy and Sell execution with prices & timestamps</p>
+        </div>
+        <button onclick="loadTransactions()" class="px-3 py-1.5 rounded-xl border border-dark-750 bg-dark-850 hover:bg-dark-750 text-xs text-slate-300 transition">
+          Refresh Ledger
+        </button>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl glass-panel border-dark-750 custom-scroll">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-dark-850/80 text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-dark-750">
+            <tr>
+              <th class="py-3 px-4 font-mono">Txn ID</th>
+              <th class="py-3 px-4">Date / Time</th>
+              <th class="py-3 px-4">Stock</th>
+              <th class="py-3 px-4">Action</th>
+              <th class="py-3 px-4 text-right">Quantity</th>
+              <th class="py-3 px-4 text-right">Executed Price</th>
+              <th class="py-3 px-4 text-right">Total Consideration</th>
+            </tr>
+          </thead>
+          <tbody id="transactionsTableBody" class="divide-y divide-dark-750/50 font-mono">
+            <!-- Loaded dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODALS -->
+  <!-- Auth Modal -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-dark-700 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5">
+      <div class="flex justify-between items-center border-b border-dark-750 pb-3">
+        <h3 id="authModalTitle" class="text-lg font-bold text-white">Sign In to MarketPulse</h3>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 bg-dark-850 p-1 rounded-xl border border-dark-750">
+        <button id="authToggleLogin" onclick="setAuthMode('login')" class="py-2 text-xs font-bold rounded-lg bg-dark-750 text-white">Login</button>
+        <button id="authToggleRegister" onclick="setAuthMode('register')" class="py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white">Register</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-xs">
+        <div id="authNameField" class="hidden">
+          <label class="block font-semibold text-slate-400 uppercase text-[10px] mb-1">Full Name</label>
+          <input type="text" id="authName" placeholder="John Doe" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white focus:border-accent-green focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-400 uppercase text-[10px] mb-1">Email Address</label>
+          <input type="email" id="authEmail" required placeholder="demo@marketpulse.com" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white focus:border-accent-green focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-400 uppercase text-[10px] mb-1">Password</label>
+          <input type="password" id="authPassword" required placeholder="••••••••" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white focus:border-accent-green focus:outline-none" />
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="w-full py-3 rounded-xl bg-accent-green text-dark-950 font-bold text-xs uppercase tracking-wider hover:brightness-110 transition shadow-lg shadow-accent-green/20">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Quick Demo Presets -->
+      <div class="pt-3 border-t border-dark-750 space-y-2">
+        <p class="text-[11px] text-slate-400 text-center font-medium">Quick 1-Click Demo Profiles:</p>
+        <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+          <button onclick="loginPreset('demo@marketpulse.com', 'password123')" class="py-2 px-3 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-750 text-accent-cyan text-center transition">
+            👤 Demo User
+          </button>
+          <button onclick="loginPreset('admin@marketpulse.com', 'password123')" class="py-2 px-3 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-750 text-accent-gold text-center transition">
+            ⚡ Admin User
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Alert Modal -->
+  <div id="alertModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-dark-900 border border-dark-700 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5">
+      <div class="flex justify-between items-center border-b border-dark-750 pb-3">
+        <h3 class="text-base font-bold text-white">Create Stock Price Alert</h3>
+        <button onclick="closeAlertModal()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <form onsubmit="handleCreateAlertSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-400 uppercase text-[10px] mb-1">Target Stock</label>
+          <select id="alertStockSelect" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white font-mono focus:border-accent-green focus:outline-none">
+            <!-- populated via JS -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-400 uppercase text-[10px] mb-1">Condition Trigger</label>
+          <select id="alertConditionSelect" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white font-mono focus:border-accent-green focus:outline-none">
+            <option value="ABOVE">Price Crosses ABOVE (>= Target)</option>
+            <option value="BELOW">Price Drops BELOW (<= Target)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-400 uppercase text-[10px] mb-1">Target Price (₹)</label>
+          <input type="number" step="0.05" id="alertTargetPrice" required placeholder="e.g. 4000.00" class="w-full py-2.5 px-3 rounded-xl bg-dark-850 border border-dark-750 text-white font-mono focus:border-accent-green focus:outline-none" />
+        </div>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-accent-green text-dark-950 font-bold text-xs uppercase tracking-wider hover:brightness-110 transition shadow-lg shadow-accent-green/20">
+          Save Alert
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION CORE -->
+  <script>
+    const API_BASE = window.location.origin;
+    let currentUser = null;
+    let allStocks = [];
+    let userWatchlist = null;
+    let currentChartStock = null;
+    let stockChartInstance = null;
+    let tradeMode = 'BUY';
+    let currentSectorFilter = 'ALL';
+
+    // Formatters
+    const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+    const fmtNumber = (n) => n != null ? Number(n).toLocaleString('en-IN') : '-';
+
+    // Toast helper
+    function showToast(msg, isSuccess = true) {
+      const t = document.getElementById('toast');
+      t.innerHTML = `
+        <span class="w-2 h-2 rounded-full ${isSuccess ? 'bg-accent-green' : 'bg-accent-red'}"></span>
+        <span class="text-white">${msg}</span>
+      `;
+      t.className = `fixed bottom-6 right-6 z-50 transition-all duration-300 flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl glass-panel text-sm font-medium ${isSuccess ? 'border-accent-green/40' : 'border-accent-red/40'}`;
+      setTimeout(() => {
+        t.className += " translate-y-24 opacity-0 pointer-events-none";
+      }, 3500);
+    }
+
+    // Token & Auth storage
+    function getToken() { return localStorage.getItem('mp_token'); }
+    function setToken(tok) { localStorage.setItem('mp_token', tok); }
+    function removeToken() { localStorage.removeItem('mp_token'); }
+
+    // API Wrapper
+    async function api(path, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      const token = getToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData) && !headers['Content-Type']) {
+        headers['Content-Type'] = 'application/json';
+        options.body = JSON.stringify(options.body);
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+        if (res.status === 401) {
+          removeToken();
+          currentUser = null;
+          updateAuthUI();
+          throw new Error('Session expired. Please log in.');
+        }
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || 'Request failed');
+        }
+        if (res.status === 204) return null;
+        return await res.json();
+      } catch (err) {
+        showToast(err.message, false);
+        throw err;
+      }
+    }
+
+    // Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      const target = document.getElementById(`tab-${tabId}`);
+      if (target) target.classList.remove('hidden');
+
+      const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+      if (btn) btn.classList.add('active');
+
+      if (tabId === 'portfolio') loadPortfolio();
+      if (tabId === 'alerts') loadAlerts();
+      if (tabId === 'news') loadNews();
+      if (tabId === 'history') loadTransactions();
+      if (tabId === 'chart') {
+        if (!currentChartStock && allStocks.length > 0) {
+          selectStockForChart(allStocks[0].stock_id);
+        } else if (currentChartStock) {
+          renderStockChart();
+        }
+      }
+    }
+
+    // Initialize Application
+    async function initApp() {
+      await checkAuth();
+      await loadStocks();
+      if (currentUser) {
+        await loadWatchlist();
+      }
+      loadSearchBackendInfo();
+    }
+
+    // Auth
+    async function checkAuth() {
+      const token = getToken();
+      if (!token) {
+        updateAuthUI();
+        return;
+      }
+      try {
+        currentUser = await api('/auth/me');
+      } catch (e) {
+        currentUser = null;
+      }
+      updateAuthUI();
+    }
+
+    function updateAuthUI() {
+      const sec = document.getElementById('authSection');
+      if (currentUser) {
+        sec.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <p class="text-xs font-bold text-white">${currentUser.name}</p>
+              <p class="text-[10px] font-mono text-accent-green">Cash: ${inr.format(currentUser.cash_balance)}</p>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-dark-750 border border-dark-700 flex items-center justify-center font-bold text-xs text-accent-cyan">
+              ${currentUser.name[0].toUpperCase()}
+            </div>
+            <button onclick="logout()" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-dark-800 transition" title="Logout">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            </button>
+          </div>
+        `;
+      } else {
+        sec.innerHTML = `
+          <button onclick="openAuthModal('login')" class="px-4 py-2 rounded-xl text-xs font-bold bg-dark-800 hover:bg-dark-750 text-white border border-dark-700 transition">
+            Sign In
+          </button>
+          <button onclick="openAuthModal('register')" class="px-4 py-2 rounded-xl text-xs font-bold bg-accent-green text-dark-950 hover:brightness-110 transition shadow-lg shadow-accent-green/20">
+            Get Started
+          </button>
+        `;
+      }
+    }
+
+    function logout() {
+      removeToken();
+      currentUser = null;
+      userWatchlist = null;
+      updateAuthUI();
+      loadStocks();
+      showToast('Logged out successfully');
+    }
+
+    // Auth Modal handling
+    let authMode = 'login';
+    function openAuthModal(mode = 'login') {
+      authMode = mode;
+      document.getElementById('authModal').classList.remove('hidden');
+      setAuthMode(mode);
+    }
+    function closeAuthModal() {
+      document.getElementById('authModal').classList.add('hidden');
+    }
+    function setAuthMode(mode) {
+      authMode = mode;
+      const title = document.getElementById('authModalTitle');
+      const nameFld = document.getElementById('authNameField');
+      const submitBtn = document.getElementById('authSubmitBtn');
+      const btnLog = document.getElementById('authToggleLogin');
+      const btnReg = document.getElementById('authToggleRegister');
+
+      if (mode === 'login') {
+        title.innerText = 'Sign In to MarketPulse';
+        nameFld.classList.add('hidden');
+        submitBtn.innerText = 'Sign In';
+        btnLog.className = "py-2 text-xs font-bold rounded-lg bg-dark-750 text-white";
+        btnReg.className = "py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white";
+      } else {
+        title.innerText = 'Create MarketPulse Account';
+        nameFld.classList.remove('hidden');
+        submitBtn.innerText = 'Register & Start Trading';
+        btnReg.className = "py-2 text-xs font-bold rounded-lg bg-dark-750 text-white";
+        btnLog.className = "py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white";
+      }
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value;
+      const password = document.getElementById('authPassword').value;
+
+      if (authMode === 'login') {
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
+
+        const res = await api('/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString()
+        });
+        setToken(res.access_token);
+        currentUser = res.user;
+        showToast(`Welcome back, ${currentUser.name}!`);
+      } else {
+        const name = document.getElementById('authName').value;
+        const res = await api('/auth/register', {
+          method: 'POST',
+          body: { name, email, password }
+        });
+        setToken(res.access_token);
+        currentUser = res.user;
+        showToast(`Account created! Welcome, ${currentUser.name}!`);
+      }
+
+      closeAuthModal();
+      updateAuthUI();
+      await loadWatchlist();
+      await loadStocks();
+    }
+
+    async function loginPreset(email, password) {
+      document.getElementById('authEmail').value = email;
+      document.getElementById('authPassword').value = password;
+      const formData = new URLSearchParams();
+      formData.append('username', email);
+      formData.append('password', password);
+
+      const res = await api('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formData.toString()
+      });
+      setToken(res.access_token);
+      currentUser = res.user;
+      closeAuthModal();
+      updateAuthUI();
+      await loadWatchlist();
+      await loadStocks();
+      showToast(`Logged in as ${currentUser.name}`);
+    }
+
+    // Stocks & Markets
+    async function loadStocks() {
+      try {
+        allStocks = await api('/stocks');
+        renderSectorPills();
+        renderStocks();
+        populateStockDropdowns();
+      } catch (err) {
+        console.error('Failed to load stocks:', err);
+      }
+    }
+
+    function renderSectorPills() {
+      const sectors = ['ALL', ...new Set(allStocks.map(s => s.sector).filter(Boolean))];
+      const container = document.getElementById('sectorPills');
+      container.innerHTML = sectors.map(sec => `
+        <button onclick="setSectorFilter('${sec}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${currentSectorFilter === sec ? 'bg-accent-green text-dark-950 font-bold' : 'bg-dark-850 hover:bg-dark-800 text-slate-300 border border-dark-750'}">
+          ${sec}
+        </button>
+      `).join('');
+    }
+
+    function setSectorFilter(sec) {
+      currentSectorFilter = sec;
+      renderSectorPills();
+      filterStocks();
+    }
+
+    function filterStocks() {
+      const q = document.getElementById('stockSearch').value.toLowerCase().trim();
+      let filtered = allStocks;
+      if (currentSectorFilter !== 'ALL') {
+        filtered = filtered.filter(s => s.sector === currentSectorFilter);
+      }
+      if (q) {
+        filtered = filtered.filter(s => s.ticker.toLowerCase().includes(q) || s.company_name.toLowerCase().includes(q));
+      }
+      renderStocks(filtered);
+    }
+
+    function renderStocks(stocks = allStocks) {
+      const container = document.getElementById('stocksGrid');
+      document.getElementById('stockCountLabel').innerText = `Showing ${stocks.length} stocks`;
+
+      if (stocks.length === 0) {
+        container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 text-sm">No stocks matching your criteria</div>`;
+        return;
+      }
+
+      const watchlistStockIds = new Set((userWatchlist?.items || []).map(i => i.stock_id));
+
+      container.innerHTML = stocks.map(s => {
+        const isUp = (s.change_pct || 0) >= 0;
+        const inWl = watchlistStockIds.has(s.stock_id);
+
+        return `
+          <div class="p-5 rounded-2xl glass-panel border-dark-750 hover:border-dark-700 transition flex flex-col justify-between group">
+            <div>
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-extrabold text-base text-white font-mono tracking-tight group-hover:text-accent-green transition">${s.ticker}</span>
+                    <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-dark-750 text-slate-300">${s.exchange}</span>
+                  </div>
+                  <p class="text-xs text-slate-400 mt-0.5 line-clamp-1">${s.company_name}</p>
+                </div>
+                <button onclick="toggleWatchlistStock(${s.stock_id})" class="p-1.5 rounded-lg hover:bg-dark-750 text-slate-400 hover:text-accent-gold transition" title="${inWl ? 'Remove from Watchlist' : 'Add to Watchlist'}">
+                  <span class="text-base ${inWl ? 'text-accent-gold' : 'text-slate-600'}">★</span>
+                </button>
+              </div>
+
+              <div class="mt-4 flex items-baseline justify-between font-mono">
+                <div>
+                  <span class="text-xl font-black text-white">${s.last_price != null ? inr.format(s.last_price) : 'N/A'}</span>
+                </div>
+                ${s.change_pct != null ? `
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full ${isUp ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-red/10 text-accent-red'}">
+                    ${isUp ? '+' : ''}${s.change_pct.toFixed(2)}%
+                  </span>
+                ` : ''}
+              </div>
+
+              <div class="mt-1 text-[11px] text-slate-500 flex items-center justify-between">
+                <span>Sector: ${s.sector || 'N/A'}</span>
+              </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t border-dark-750/60 grid grid-cols-2 gap-2">
+              <button onclick="openChartForStock(${s.stock_id})" class="py-2 px-3 rounded-xl bg-dark-850 hover:bg-dark-800 border border-dark-700/60 text-xs font-semibold text-slate-300 hover:text-white transition text-center flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18"/></svg>
+                Chart
+              </button>
+              <button onclick="quickTradeStock(${s.stock_id})" class="py-2 px-3 rounded-xl bg-accent-green/10 hover:bg-accent-green/20 border border-accent-green/30 text-xs font-bold text-accent-green transition text-center flex items-center justify-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Trade
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Watchlist
+    async function loadWatchlist() {
+      if (!currentUser) return;
+      try {
+        const lists = await api('/watchlists');
+        if (lists && lists.length > 0) {
+          userWatchlist = lists[0];
+          renderWatchlistGrid();
+        }
+      } catch (err) {
+        console.error('Watchlist load error:', err);
+      }
+    }
+
+    function renderWatchlistGrid() {
+      const container = document.getElementById('watchlistGrid');
+      const countLabel = document.getElementById('watchlistCount');
+      const items = userWatchlist?.items || [];
+      countLabel.innerText = `${items.length} stocks`;
+
+      if (items.length === 0) {
+        container.innerHTML = `<div class="col-span-full py-4 text-center text-xs text-slate-500">Your watchlist is empty. Click ★ on any stock card to track it.</div>`;
+        return;
+      }
+
+      container.innerHTML = items.map(item => {
+        const isUp = (item.change_pct || 0) >= 0;
+        return `
+          <div class="p-3 rounded-xl bg-dark-900 border border-dark-750 flex items-center justify-between font-mono">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white text-xs">${item.ticker}</span>
+                <span class="text-[10px] text-slate-400 font-sans">${item.company_name}</span>
+              </div>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-sm font-bold text-white">${item.last_price != null ? inr.format(item.last_price) : '-'}</span>
+                ${item.change_pct != null ? `<span class="text-[10px] font-bold ${isUp ? 'text-accent-green' : 'text-accent-red'}">${isUp ? '+' : ''}${item.change_pct.toFixed(2)}%</span>` : ''}
+              </div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button onclick="quickTradeStock(${item.stock_id})" class="p-1.5 rounded hover:bg-dark-750 text-accent-green" title="Trade">
+                ⚡
+              </button>
+              <button onclick="removeFromWatchlist(${item.stock_id})" class="p-1.5 rounded hover:bg-dark-750 text-slate-500 hover:text-accent-red" title="Remove">
+                ✕
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function toggleWatchlistStock(stockId) {
+      if (!currentUser) return openAuthModal();
+      if (!userWatchlist) await loadWatchlist();
+
+      const exists = (userWatchlist?.items || []).some(i => i.stock_id === stockId);
+      if (exists) {
+        await removeFromWatchlist(stockId);
+      } else {
+        await addToWatchlist(stockId);
+      }
+    }
+
+    async function addToWatchlist(stockId) {
+      if (!currentUser) return openAuthModal();
+      try {
+        await api(`/watchlists/${userWatchlist.watchlist_id}/items`, {
+          method: 'POST',
+          body: { stock_id: stockId }
+        });
+        showToast('Added to watchlist');
+        await loadWatchlist();
+        renderStocks();
+      } catch (e) {}
+    }
+
+    async function removeFromWatchlist(stockId) {
+      if (!currentUser || !userWatchlist) return;
+      try {
+        await api(`/watchlists/${userWatchlist.watchlist_id}/items/${stockId}`, {
+          method: 'DELETE'
+        });
+        showToast('Removed from watchlist');
+        await loadWatchlist();
+        renderStocks();
+      } catch (e) {}
+    }
+
+    // Interactive Chart
+    function populateStockDropdowns() {
+      const opts = allStocks.map(s => `<option value="${s.stock_id}">${s.ticker} – ${s.company_name}</option>`).join('');
+      document.getElementById('chartStockSelect').innerHTML = opts;
+      document.getElementById('tradeStockSelect').innerHTML = opts;
+      document.getElementById('alertStockSelect').innerHTML = opts;
+    }
+
+    function openChartForStock(stockId) {
+      switchTab('chart');
+      selectStockForChart(stockId);
+    }
+
+    function onChartStockChange() {
+      const id = parseInt(document.getElementById('chartStockSelect').value);
+      selectStockForChart(id);
+    }
+
+    let chartDays = 90;
+    function loadChartDays(days) {
+      chartDays = days;
+      document.querySelectorAll('.chart-range-btn').forEach(btn => {
+        if (parseInt(btn.getAttribute('data-days')) === days) {
+          btn.className = "chart-range-btn active px-3 py-1.5 rounded-lg text-accent-green bg-accent-green/10 font-bold";
+        } else {
+          btn.className = "chart-range-btn px-3 py-1.5 rounded-lg text-slate-400 hover:text-white";
+        }
+      });
+      if (currentChartStock) renderStockChart();
+    }
+
+    async function selectStockForChart(stockId) {
+      currentChartStock = allStocks.find(s => s.stock_id === stockId) || allStocks[0];
+      if (!currentChartStock) return;
+
+      document.getElementById('chartStockSelect').value = currentChartStock.stock_id;
+      document.getElementById('chartTickerIcon').innerText = currentChartStock.ticker;
+      document.getElementById('chartStockName').innerText = currentChartStock.company_name;
+      document.getElementById('chartExchangeBadge').innerText = currentChartStock.exchange;
+      document.getElementById('chartStatSector').innerText = currentChartStock.sector || 'NSE';
+      document.getElementById('chartLastPrice').innerText = currentChartStock.last_price != null ? inr.format(currentChartStock.last_price) : '-';
+
+      const isUp = (currentChartStock.change_pct || 0) >= 0;
+      const chgEl = document.getElementById('chartChangePct');
+      chgEl.innerText = `${isUp ? '+' : ''}${(currentChartStock.change_pct || 0).toFixed(2)}%`;
+      chgEl.className = `text-xs font-bold px-2 py-0.5 rounded-full ${isUp ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-red/10 text-accent-red'}`;
+
+      await renderStockChart();
+    }
+
+    async function renderStockChart() {
+      if (!currentChartStock) return;
+      try {
+        const prices = await api(`/stocks/${currentChartStock.stock_id}/prices?days=${chartDays}`);
+        if (!prices || prices.length === 0) return;
+
+        const labels = prices.map(p => p.trade_date);
+        const closes = prices.map(p => p.close_price);
+        const highs = prices.map(p => p.high_price);
+        const lows = prices.map(p => p.low_price);
+        const totalVol = prices.reduce((acc, p) => acc + (p.volume || 0), 0);
+
+        document.getElementById('chartStatHigh').innerText = inr.format(Math.max(...highs));
+        document.getElementById('chartStatLow').innerText = inr.format(Math.min(...lows));
+        document.getElementById('chartStatVolume').innerText = totalVol.toLocaleString('en-IN');
+
+        const isPositive = closes[closes.length - 1] >= closes[0];
+        const lineColor = isPositive ? '#00e599' : '#ff3b57';
+        const fillColor = isPositive ? 'rgba(0, 229, 153, 0.12)' : 'rgba(255, 59, 87, 0.12)';
+
+        const ctx = document.getElementById('stockChartCanvas').getContext('2d');
+        if (stockChartInstance) stockChartInstance.destroy();
+
+        stockChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: `${currentChartStock.ticker} Close`,
+              data: closes,
+              borderColor: lineColor,
+              backgroundColor: fillColor,
+              borderWidth: 2.5,
+              tension: 0.25,
+              fill: true,
+              pointRadius: 0,
+              pointHoverRadius: 6,
+              pointHoverBackgroundColor: lineColor,
+              pointHoverBorderColor: '#070a0f',
+              pointHoverBorderWidth: 2,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#0d131d',
+                titleColor: '#e2e8f0',
+                bodyColor: '#00e599',
+                borderColor: '#263753',
+                borderWidth: 1,
+                padding: 12,
+                displayColors: false,
+                callbacks: {
+                  label: (ctx) => `Close: ₹${Number(ctx.parsed.y).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                }
+              }
+            },
+            scales: {
+              x: {
+                grid: { color: 'rgba(38, 55, 83, 0.3)' },
+                ticks: { color: '#64748b', font: { family: 'JetBrains Mono', size: 10 } }
+              },
+              y: {
+                grid: { color: 'rgba(38, 55, 83, 0.3)' },
+                ticks: {
+                  color: '#64748b',
+                  font: { family: 'JetBrains Mono', size: 10 },
+                  callback: (v) => `₹${v.toLocaleString('en-IN')}`
+                }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Failed to render chart:', err);
+      }
+    }
+
+    // Portfolio & Trading
+    let currentPortfolio = null;
+
+    async function loadPortfolio() {
+      if (!currentUser) return openAuthModal();
+      try {
+        currentPortfolio = await api('/portfolio');
+        currentUser.cash_balance = currentPortfolio.cash_balance;
+        updateAuthUI();
+
+        document.getElementById('portTotalValue').innerText = inr.format(currentPortfolio.total_value);
+        document.getElementById('portCashBalance').innerText = inr.format(currentPortfolio.cash_balance);
+        document.getElementById('portHoldingsValue').innerText = inr.format(currentPortfolio.holdings_value);
+
+        const pnl = currentPortfolio.total_pnl;
+        const pnlEl = document.getElementById('portPnl');
+        const pnlPctEl = document.getElementById('portPnlPct');
+        const isUp = pnl >= 0;
+
+        pnlEl.innerText = `${isUp ? '+' : ''}${inr.format(pnl)}`;
+        pnlEl.className = `text-2xl font-black font-mono ${isUp ? 'text-accent-green' : 'text-accent-red'}`;
+        
+        const totalInvested = currentPortfolio.holdings_value - pnl;
+        const pct = totalInvested > 0 ? (pnl / totalInvested * 100).toFixed(2) : '0.00';
+        pnlPctEl.innerText = `${isUp ? '+' : ''}${pct}% on invested capital`;
+
+        renderHoldingsTable();
+        onTradeStockChange();
+      } catch (err) {
+        console.error('Portfolio load failed:', err);
+      }
+    }
+
+    function renderHoldingsTable() {
+      const tbody = document.getElementById('holdingsTableBody');
+      const holdings = currentPortfolio?.holdings || [];
+
+      if (holdings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="py-10 text-center text-slate-500 font-sans">You have no active stock holdings. Execute a BUY order to start building your portfolio.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = holdings.map(h => {
+        const isUp = h.pnl >= 0;
+        return `
+          <tr class="hover:bg-dark-800/40 transition">
+            <td class="py-3 px-4 font-mono font-bold text-white">
+              ${h.ticker}
+              <span class="block font-sans font-normal text-[10px] text-slate-400">${h.company_name}</span>
+            </td>
+            <td class="py-3 px-4 font-mono text-white font-semibold">${h.quantity}</td>
+            <td class="py-3 px-4 font-mono text-slate-300">${inr.format(h.avg_price)}</td>
+            <td class="py-3 px-4 font-mono text-white">${h.current_price != null ? inr.format(h.current_price) : '-'}</td>
+            <td class="py-3 px-4 font-mono text-white font-bold">${inr.format(h.market_value)}</td>
+            <td class="py-3 px-4 font-mono font-bold ${isUp ? 'text-accent-green' : 'text-accent-red'}">
+              ${isUp ? '+' : ''}${inr.format(h.pnl)}
+              <span class="block text-[10px]">${isUp ? '+' : ''}${h.pnl_pct.toFixed(2)}%</span>
+            </td>
+            <td class="py-3 px-4 text-right">
+              <div class="flex items-center justify-end gap-1 font-sans">
+                <button onclick="prefillTrade(${h.stock_id}, 'BUY')" class="px-2 py-1 rounded bg-dark-750 hover:bg-dark-700 text-accent-green text-[10px] font-bold">BUY</button>
+                <button onclick="prefillTrade(${h.stock_id}, 'SELL')" class="px-2 py-1 rounded bg-dark-750 hover:bg-dark-700 text-accent-red text-[10px] font-bold">SELL</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function quickTradeStock(stockId) {
+      switchTab('portfolio');
+      prefillTrade(stockId, 'BUY');
+    }
+
+    function prefillTrade(stockId, type = 'BUY') {
+      document.getElementById('tradeStockSelect').value = stockId;
+      setTradeType(type);
+      onTradeStockChange();
+    }
+
+    function setTradeType(type) {
+      tradeMode = type;
+      const btnBuy = document.getElementById('tradeTypeBuy');
+      const btnSell = document.getElementById('tradeTypeSell');
+      const submitBtn = document.getElementById('tradeSubmitBtn');
+
+      if (type === 'BUY') {
+        btnBuy.className = "py-2 text-xs font-bold rounded-lg transition bg-accent-green text-dark-950 shadow-md";
+        btnSell.className = "py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
+        submitBtn.innerText = "CONFIRM BUY ORDER";
+        submitBtn.className = "w-full py-3 rounded-xl font-extrabold text-sm transition bg-accent-green text-dark-950 hover:brightness-110 shadow-lg shadow-accent-green/20";
+      } else {
+        btnSell.className = "py-2 text-xs font-bold rounded-lg transition bg-accent-red text-white shadow-md";
+        btnBuy.className = "py-2 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
+        submitBtn.innerText = "CONFIRM SELL ORDER";
+        submitBtn.className = "w-full py-3 rounded-xl font-extrabold text-sm transition bg-accent-red text-white hover:brightness-110 shadow-lg shadow-accent-red/20";
+      }
+      calculateTradeTotal();
+    }
+
+    function setTradeQty(q) {
+      const cur = parseInt(document.getElementById('tradeQuantity').value) || 0;
+      document.getElementById('tradeQuantity').value = cur + q;
+      calculateTradeTotal();
+    }
+
+    function onTradeStockChange() {
+      const stockId = parseInt(document.getElementById('tradeStockSelect').value);
+      const stock = allStocks.find(s => s.stock_id === stockId);
+      if (!stock) return;
+
+      document.getElementById('tradeStockPrice').innerText = stock.last_price != null ? inr.format(stock.last_price) : '-';
+
+      const holding = (currentPortfolio?.holdings || []).find(h => h.stock_id === stockId);
+      document.getElementById('tradeStockOwned').innerText = `${holding ? holding.quantity : 0} shares`;
+
+      calculateTradeTotal();
+    }
+
+    function calculateTradeTotal() {
+      const stockId = parseInt(document.getElementById('tradeStockSelect').value);
+      const stock = allStocks.find(s => s.stock_id === stockId);
+      const qty = parseInt(document.getElementById('tradeQuantity').value) || 0;
+      const price = stock?.last_price || 0;
+      const total = qty * price;
+      document.getElementById('tradeEstimatedTotal').innerText = inr.format(total);
+    }
+
+    async function executeTrade() {
+      if (!currentUser) return openAuthModal();
+      const stockId = parseInt(document.getElementById('tradeStockSelect').value);
+      const qty = parseInt(document.getElementById('tradeQuantity').value);
+
+      if (!qty || qty <= 0) {
+        showToast('Please specify a positive share quantity', false);
+        return;
+      }
+
+      try {
+        const res = await api('/transactions', {
+          method: 'POST',
+          body: {
+            stock_id: stockId,
+            txn_type: tradeMode,
+            quantity: qty
+          }
+        });
+
+        showToast(`Executed ${tradeMode} ${qty} shares of ${res.transaction.ticker} at ₹${res.transaction.price}!`);
+        if (res.triggered_alerts && res.triggered_alerts.length > 0) {
+          showToast(`🔔 ${res.triggered_alerts.length} Price Alert(s) Triggered!`, true);
+        }
+
+        await loadPortfolio();
+      } catch (err) {
+        // Handled in api()
+      }
+    }
+
+    // Price Alerts
+    async function loadAlerts() {
+      if (!currentUser) return openAuthModal();
+      try {
+        const alerts = await api('/alerts');
+        const container = document.getElementById('alertsGrid');
+
+        if (alerts.length === 0) {
+          container.innerHTML = `<div class="col-span-full py-12 text-center text-slate-500 text-sm">No price alerts set. Create an alert to receive triggers when stock prices cross your threshold.</div>`;
+          return;
+        }
+
+        container.innerHTML = alerts.map(a => `
+          <div class="p-5 rounded-2xl glass-panel border-dark-750 flex flex-col justify-between space-y-4">
+            <div>
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold font-mono text-base text-white">${a.ticker}</span>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${a.is_triggered ? 'bg-accent-green/20 text-accent-green border border-accent-green/40' : 'bg-dark-750 text-slate-400'}">
+                  ${a.is_triggered ? 'TRIGGERED ✓' : 'ACTIVE MONITORING'}
+                </span>
+              </div>
+              <div class="mt-3 font-mono">
+                <p class="text-xs text-slate-400">Trigger Condition:</p>
+                <p class="text-sm font-bold text-white mt-0.5">
+                  Price ${a.condition_type === 'ABOVE' ? '▲ Goes ABOVE' : '▼ Drops BELOW'} ${inr.format(a.target_price)}
+                </p>
+              </div>
+            </div>
+            <div class="pt-3 border-t border-dark-750 flex justify-between items-center text-xs">
+              <span class="text-slate-500 text-[10px] font-mono">${new Date(a.created_at).toLocaleDateString()}</span>
+              <button onclick="deleteAlert(${a.alert_id})" class="text-slate-400 hover:text-accent-red transition text-[11px] font-semibold">Delete</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Alerts load error:', err);
+      }
+    }
+
+    function openNewAlertModal() {
+      if (!currentUser) return openAuthModal();
+      document.getElementById('alertModal').classList.remove('hidden');
+    }
+    function closeAlertModal() {
+      document.getElementById('alertModal').classList.add('hidden');
+    }
+
+    async function handleCreateAlertSubmit(e) {
+      e.preventDefault();
+      const stockId = parseInt(document.getElementById('alertStockSelect').value);
+      const condition = document.getElementById('alertConditionSelect').value;
+      const targetPrice = parseFloat(document.getElementById('alertTargetPrice').value);
+
+      try {
+        const a = await api('/alerts', {
+          method: 'POST',
+          body: {
+            stock_id: stockId,
+            condition_type: condition,
+            target_price: targetPrice
+          }
+        });
+
+        closeAlertModal();
+        showToast(a.is_triggered ? 'Alert created and immediately TRIGGERED!' : 'Alert registered successfully');
+        loadAlerts();
+      } catch (err) {}
+    }
+
+    async function runAlertCheck() {
+      if (!currentUser) return openAuthModal();
+      try {
+        const fired = await api('/alerts/check', { method: 'POST' });
+        if (fired.length > 0) {
+          showToast(`⚡ ${fired.length} alert(s) just triggered!`, true);
+        } else {
+          showToast('Alert evaluation complete. No new triggers at current prices.', true);
+        }
+        loadAlerts();
+      } catch (err) {}
+    }
+
+    async function deleteAlert(alertId) {
+      try {
+        await api(`/alerts/${alertId}`, { method: 'DELETE' });
+        showToast('Alert deleted');
+        loadAlerts();
+      } catch (err) {}
+    }
+
+    // Semantic News Search
+    async function loadSearchBackendInfo() {
+      try {
+        const b = await api('/news/search-backend');
+        document.getElementById('searchBackendBadge').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-accent-green"></span>
+          Backend: ${b.backend} (${b.dim}-dim)
+        `;
+      } catch (e) {}
+    }
+
+    async function loadNews() {
+      try {
+        const articles = await api('/news');
+        renderNewsList(articles);
+      } catch (e) {}
+    }
+
+    function setNewsQuery(q) {
+      document.getElementById('newsQueryInput').value = q;
+      executeSemanticSearch();
+    }
+
+    async function executeSemanticSearch() {
+      const q = document.getElementById('newsQueryInput').value.trim();
+      if (!q) {
+        loadNews();
+        return;
+      }
+
+      try {
+        const results = await api('/news/search', {
+          method: 'POST',
+          body: { query: q, top_k: 10 }
+        });
+        renderNewsList(results, true);
+      } catch (err) {}
+    }
+
+    function renderNewsList(articles, isSearch = false) {
+      const container = document.getElementById('newsResultsList');
+      if (articles.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-slate-500 text-sm glass-panel rounded-2xl">No news articles found matching your semantic query.</div>`;
+        return;
+      }
+
+      container.innerHTML = articles.map(a => `
+        <div class="p-5 rounded-2xl glass-panel border-dark-750 hover:border-dark-700 transition space-y-3">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div class="flex items-center gap-2">
+              ${a.ticker ? `<span class="px-2 py-0.5 rounded font-mono font-bold text-xs bg-dark-750 text-accent-cyan">${a.ticker}</span>` : ''}
+              <span class="text-xs text-slate-400">${a.source || 'MarketPulse Wire'}</span>
+              <span class="text-slate-600">•</span>
+              <span class="text-xs text-slate-500 font-mono">${new Date(a.published_at).toLocaleDateString()}</span>
+            </div>
+            ${a.score != null ? `
+              <span class="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-accent-green/10 text-accent-green border border-accent-green/30">
+                ${(a.score * 100).toFixed(1)}% Match
+              </span>
+            ` : ''}
+          </div>
+
+          <h3 class="text-base font-bold text-white">${a.title}</h3>
+          <p class="text-xs text-slate-300 leading-relaxed">${a.content}</p>
+        </div>
+      `).join('');
+    }
+
+    // Audit History
+    async function loadTransactions() {
+      if (!currentUser) return openAuthModal();
+      try {
+        const txns = await api('/transactions?limit=100');
+        const tbody = document.getElementById('transactionsTableBody');
+
+        if (txns.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="py-10 text-center text-slate-500 font-sans">No transactions recorded yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = txns.map(t => {
+          const isBuy = t.txn_type === 'BUY';
+          const total = t.quantity * t.price;
+          return `
+            <tr class="hover:bg-dark-800/40 transition">
+              <td class="py-3 px-4 text-slate-400">#${t.txn_id}</td>
+              <td class="py-3 px-4 text-slate-300 font-sans text-xs">${new Date(t.txn_time).toLocaleString()}</td>
+              <td class="py-3 px-4 font-bold text-white">${t.ticker}</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-0.5 rounded font-bold text-[10px] ${isBuy ? 'bg-accent-green/10 text-accent-green border border-accent-green/30' : 'bg-accent-red/10 text-accent-red border border-accent-red/30'}">
+                  ${t.txn_type}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-right text-white">${t.quantity}</td>
+              <td class="py-3 px-4 text-right text-slate-300">${inr.format(t.price)}</td>
+              <td class="py-3 px-4 text-right font-bold text-white">${inr.format(total)}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {}
+    }
+
+    // Start App on Load
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
+
